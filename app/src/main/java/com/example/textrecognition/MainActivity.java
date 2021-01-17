@@ -16,6 +16,7 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -37,6 +38,7 @@ public class MainActivity extends AppCompatActivity implements ImageToText.Image
 
   // textview object to display text
   private TextView textView;
+  private EditText editText;
 
   private ImageToText imageToText;
   private static final String TAG = "MAIN_ACTIVITY";
@@ -48,6 +50,8 @@ public class MainActivity extends AppCompatActivity implements ImageToText.Image
 
     // init textview
     textView = findViewById(R.id.textId);
+    editText = findViewById(R.id.save_name);
+    editText.setText("");
 
     imageToText = new ImageToText(getApplicationContext(), this);
     imageToText.setOnImageToTextComplete(this);
@@ -72,4 +76,19 @@ public class MainActivity extends AppCompatActivity implements ImageToText.Image
   public void onImageToTextComplete(String s) {
     textView.setText(s);
   }
+
+  public void save(View view) {
+    Log.d(TAG, "Starting image to text");
+    String prefix = editText.getText().toString();
+    if (!prefix.isEmpty()) {
+      imageToText.save(prefix);
+      imageToText.cleanup();
+      textView.setText("");
+      editText.setText("");
+    } else {
+      Toast.makeText(this, "File prefix input missing", Toast.LENGTH_LONG).show();
+    }
+
+  }
+
 }

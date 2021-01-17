@@ -25,6 +25,8 @@ import com.google.firebase.ml.vision.text.FirebaseVisionText;
 import com.google.firebase.ml.vision.text.FirebaseVisionTextRecognizer;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -84,6 +86,10 @@ public class ImageToText {
     Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
     if(intent.resolveActivity(context.getPackageManager()) != null) {
 
+      if (!imagePath.isEmpty()) {
+        cleanup();
+      }
+
       try {
         // create a new image file
         File file = createImageFile();
@@ -121,7 +127,7 @@ public class ImageToText {
     // create the image file in storageDir
     File image = null;
     try {
-      image = File.createTempFile(imageFileName, ".jpg",storageDir);
+      image = File.createTempFile(imageFileName, ".jpg", storageDir);
       // Save a file: path for use with ACTION_VIEW intents
       imagePath = image.getAbsolutePath();
       Log.d(TAG, "Created image temp file : " + imagePath);
@@ -151,8 +157,7 @@ public class ImageToText {
       if (imageResultFile.exists()) {
         Log.d(TAG, "onActivityResult: image file exists. size " + imageResultFile.length());
         bitmap = BitmapFactory.decodeFile(imagePath);
-        File imageFile = new File(imagePath);
-        imageFile.delete();
+        //cleanup();
 
         // adjust the resolution of the bitmap
         if (bitmap.getWidth() > 1000) {
@@ -203,6 +208,50 @@ public class ImageToText {
             textAvailableListener.onImageToTextComplete(imageText);
           }
         });
+  }
+
+  public void save(String prefix) {
+    File storageDir = context.getFilesDir();
+
+    if (imagePath.isEmpty()) {
+      Toast.makeText(context, "File already cleaned up", Toast.LENGTH_LONG).show();
+      return;
+    }
+
+    File imageFile = new File(storageDir, prefix + "_image.jpg");
+    Bitmap bitmap = BitmapFactory.decodeFile(imagePath);
+    if (bitmap.getWidth() > 500) {
+      double scale = 500.0 / bitmap.getWidth();
+      int newWidth = (int) (bitmap.getWidth() * scale);
+      int newHeight = (int) (bitmap.getHeight() * scale);
+      bitmap = Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true);
+    }
+    try {
+      FileOutputStream outImage = new FileOutputStream(imageFile);
+      bitmap.compress(Bitmap.CompressFormat.JPEG, 90, outImage);
+      outImage.flush();
+      outImage.close();
+      Log.d(TAG, "Save image file successfully");
+    } catch (Exception e) {
+      Log.d(TAG, "Unable to save image file, error " + e.getMessage());
+    }
+
+    File txtFile = new File(storageDir, prefix + "_info.txt");
+    try {
+      FileWriter infoTextWriter = new FileWriter(txtFile);
+      infoTextWriter.write(imageText);
+      infoTextWriter.flush();
+      infoTextWriter.close();
+      Log.d(TAG, "Save text file successfully");
+    } catch (Exception e) {
+      Log.d(TAG, "Unable to save text file, error " + e.getMessage());
+    }
+  }
+
+  public void cleanup() {
+    File imageFile = new File(imagePath);
+    imageFile.delete();
+    imagePath = "";
   }
 
   public interface ImageToTextCompleteListener {
